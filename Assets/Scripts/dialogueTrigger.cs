@@ -57,13 +57,13 @@ public class DialogueTrigger : MonoBehaviour
     {
         if (line.StartsWith("R-1:"))
         {
-            dialogueText_NPC.text = line.Substring(3);
+            dialogueText_NPC.text = line.Substring(5);
             dialogueText_Player.text = "";  // Clear other text
             isR1Turn = false;
         }
         else if (line.StartsWith("R-2:"))
         {
-            dialogueText_Player.text = line.Substring(3);
+            dialogueText_Player.text = line.Substring(5);
             dialogueText_NPC.text = "";  // Clear other text
             isR1Turn = true;
         }
