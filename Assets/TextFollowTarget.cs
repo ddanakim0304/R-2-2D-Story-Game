@@ -2,8 +2,8 @@ using UnityEngine;
 
 public class TextFollowTarget : MonoBehaviour 
 {
-    public Transform target; // Assign your character here
-    public float yOffset = 1.5f; // Height offset above the character
+    public Transform target;
+    public float yOffset = 0f;
 
     void LateUpdate()
     {
