@@ -6,7 +6,7 @@ public class PlayerController : MonoBehaviour
 {
     public float speed = 7f;
     public float jumpForce = 7f;
-    public int maxJumps = 2; // Allow double jump
+    private bool canJump = true;
     // public AudioClip jumpSound;
     // public AudioClip hurtSound;
 
@@ -22,30 +22,54 @@ public class PlayerController : MonoBehaviour
     private int remainingJumps;
     public bool isFacingRight = true;
 
+    private bool canControl = true;  // Add this at the top with other private variables
+
+    // Add these two public methods
+    public void EnableControl()
+    {
+        canControl = true;
+        isKnockback = false;  // Reset knockback state when enabling control
+    }
+
+    public void DisableControl()
+    {
+        canControl = false;
+        rb.velocity = Vector2.zero;  // Stop all movement
+    }
+
     void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
         spriteRenderer = GetComponent<SpriteRenderer>();
         animator = GetComponent<Animator>();
         // audioSource = GetComponent<AudioSource>();
-        remainingJumps = maxJumps;
     }
 
     void Update()
     {
-        if (!isKnockback)  // Only allow movement if not in knockback
+        if (!isKnockback && canControl)  // Only allow movement if not in knockback and has control
         {
             float moveInput = Input.GetAxis("Horizontal");
             rb.velocity = new Vector2(moveInput * speed, rb.velocity.y);
             TurnCheck(moveInput);
+            
+            // Modified jump check
+            if (Input.GetButtonDown("Jump") && canJump)
+            {
+                rb.velocity = new Vector2(rb.velocity.x, jumpForce);
+                canJump = false;
+            }
         }
         
         animator.SetFloat("velocityX", Mathf.Abs(rb.velocity.x));
-        
-        if (Input.GetButtonDown("Jump") && remainingJumps > 0 && !isKnockback)
+    }
+
+    // Add this method to reset jump when touching ground
+    void OnCollisionEnter2D(Collision2D collision)
+    {
+        if (collision.gameObject.CompareTag("Ground"))
         {
-            rb.velocity = new Vector2(rb.velocity.x, jumpForce);
-            remainingJumps--;
+            canJump = true;
         }
     }
 
