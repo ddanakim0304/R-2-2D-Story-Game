@@ -1,7 +1,8 @@
 using UnityEngine;
 using Ink.Runtime;
 using TMPro;
-using Cinemachine; // Add this for Cinemachine functionality
+using Cinemachine;
+using System.Collections;
 
 public class DialogueTrigger : MonoBehaviour
 {
@@ -10,11 +11,15 @@ public class DialogueTrigger : MonoBehaviour
     public TextMeshProUGUI dialogueText_Player;
     public PlayerController player;
     public string storySection = "";
+    public CinemachineVirtualCamera cinemachineCamera;
+    public Transform npcTransform;
+    private Transform playerTransform;
     
-    // Add these new references
-    public CinemachineVirtualCamera cinemachineCamera; // The virtual camera to control
-    public Transform npcTransform; // The NPC transform to focus on
-    private Transform playerTransform; // Store player transform to restore later
+    // Typing effect variables
+    public float typingSpeed = 0.08f; // Time between characters (lower = faster)
+    private bool isTyping = false;
+    private string fullText = "";
+    private Coroutine typingCoroutine;
 
     private Story story;
     private bool isDialogueActive = false;
@@ -115,19 +120,62 @@ public class DialogueTrigger : MonoBehaviour
             EndDialogue();
         }
     }
+
     private void DisplayLine(string line)
     {
         if (line.StartsWith("R-1:"))
         {
-            dialogueText_NPC.text = line.Substring(5);
-            dialogueText_Player.text = "";  // Clear other text
+            fullText = line.Substring(5);
+            dialogueText_Player.text = ""; // Clear other text
             isR1Turn = false;
+            
+            // Start typing effect for NPC text
+            if (typingCoroutine != null)
+                StopCoroutine(typingCoroutine);
+            typingCoroutine = StartCoroutine(TypeText(fullText, dialogueText_NPC));
         }
         else
         {
-            dialogueText_Player.text = line.Substring(0);
-            dialogueText_NPC.text = "";  // Clear other text
+            fullText = line.Substring(0);
+            dialogueText_NPC.text = ""; // Clear other text
             isR1Turn = true;
+            
+            // Start typing effect for Player text
+            if (typingCoroutine != null)
+                StopCoroutine(typingCoroutine);
+            typingCoroutine = StartCoroutine(TypeText(fullText, dialogueText_Player));
+        }
+    }
+    
+    // Coroutine for typewriter effect
+    private IEnumerator TypeText(string text, TextMeshProUGUI textComponent)
+    {
+        isTyping = true;
+        textComponent.text = "";
+        
+        foreach (char c in text)
+        {
+            textComponent.text += c;
+            yield return new WaitForSeconds(typingSpeed);
+        }
+        
+        isTyping = false;
+    }
+    
+    // Complete the current typing animation
+    private void CompleteTyping()
+    {
+        if (isTyping)
+        {
+            if (typingCoroutine != null)
+                StopCoroutine(typingCoroutine);
+                
+            isTyping = false;
+            
+            if (isR1Turn)
+                dialogueText_Player.text = fullText;
+            else
+                dialogueText_NPC.text = fullText;
         }
     }
     
@@ -211,8 +259,16 @@ public class DialogueTrigger : MonoBehaviour
         }
         else if (Input.GetKeyDown(KeyCode.Space))
         {
-            // Continue dialogue
-            ContinueDialogue();
+            // If currently typing, show full text immediately
+            if (isTyping)
+            {
+                CompleteTyping();
+            }
+            // Otherwise continue to next line
+            else
+            {
+                ContinueDialogue();
+            }
         }
     }
 }

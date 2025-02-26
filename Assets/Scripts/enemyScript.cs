@@ -47,17 +47,26 @@ public class enemyScript : MonoBehaviour
     {
         isKnockback = true;
         
-        // Calculate knockback direction TOWARDS enemy (since we're moving the player)
-        Vector3 knockbackDirection = (playerPosition - transform.position).normalized;
-        float elapsedTime = 0f;
-        float knockbackDuration = 0.1f;
-        
         GameObject player = GameObject.FindGameObjectWithTag("Player");
         if (player != null)
         {
+            // Store the original Z position
+            float originalZ = player.transform.position.z;
+            
+            // Calculate knockback direction in 2D (only X and Y)
+            Vector2 knockbackDirection = ((Vector2)playerPosition - (Vector2)transform.position).normalized;
+            float elapsedTime = 0f;
+            float knockbackDuration = 0.1f;
+            
             while (elapsedTime < knockbackDuration)
             {
-                player.transform.position += knockbackDirection * (knockbackForce * Time.deltaTime);
+                // Apply knockback only to X and Y, preserve Z
+                Vector3 newPosition = player.transform.position;
+                newPosition.x += knockbackDirection.x * (knockbackForce * Time.deltaTime);
+                newPosition.y += knockbackDirection.y * (knockbackForce * Time.deltaTime);
+                newPosition.z = originalZ;  // Maintain original Z position
+                
+                player.transform.position = newPosition;
                 elapsedTime += Time.deltaTime;
                 yield return null;
             }
