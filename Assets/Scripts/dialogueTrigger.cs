@@ -14,6 +14,8 @@ public class DialogueTrigger : MonoBehaviour
     public CinemachineVirtualCamera cinemachineCamera;
     public Transform npcTransform;
     private Transform playerTransform;
+
+    public GameObject dialogueTriggerTarget;
     
     // Typing effect variables
     public float typingSpeed = 0.08f; // Time between characters (lower = faster)
@@ -81,7 +83,13 @@ public class DialogueTrigger : MonoBehaviour
     }
     void OnTriggerEnter2D(Collider2D other)
     {
-        if (other.CompareTag("Player"))
+        // Check if we have a target set and the collider matches that target
+        if (dialogueTriggerTarget != null && other.gameObject == dialogueTriggerTarget)
+        {
+            StartDialogue();
+        }
+        // Keep the tag check as a fallback if no specific target is set
+        else if (dialogueTriggerTarget == null && other.CompareTag("Player"))
         {
             StartDialogue();
         }
@@ -251,13 +259,13 @@ public class DialogueTrigger : MonoBehaviour
                     
                 DisplayCurrentChoice();
             }
-            else if (Input.GetKeyDown(KeyCode.Space))
+            else if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.KeypadEnter))
             {
                 // Make the selected choice
                 MakeChoice();
             }
         }
-        else if (Input.GetKeyDown(KeyCode.Space))
+        else if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.KeypadEnter))
         {
             // If currently typing, show full text immediately
             if (isTyping)

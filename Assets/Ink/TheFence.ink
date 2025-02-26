@@ -1,11 +1,14 @@
--> tutorial_start
+-> start
 
-=== tutorial_start ===
+=== start ===
 R-1: ㅈ......
 R-1: ...정신...
 R-1: 정신차려...!
 R-1: R-2, 여기서 잠들면 안돼!
 R-1: ...
+-> tutorial_start
+
+=== tutorial_start ===
 R-1: 잠깐 졸았다고 없어져서 깜짝 놀랐잖아.
 R-1: 역시 내가 억지로 데리고 오지 말았어야 했는데.
 R-1: 미안해, 얼른 해가 지기 전에 돌아가자.
@@ -18,20 +21,26 @@ R-1: 어떻게 돌아가는지 알지?
 + 응
     R-1: 다행이다..! 
     R-1: 그럼 앞장서줘, 나는 뒤에서 따라갈게.
-    -> continue_journey
+    -> slime_kill
 + 아니
     R-1: 큰일이네...
     R-1: 일단 쭉 가볼까?
-    -> continue_journey
+    -> slime_kill
 
-=== continue_journey ===
+=== slime_encounter ===
 R-1: 앗
-R-1: 귀여운 친구들인데...
+R-1: 귀여운 몬스터인데...
 R-1: 혹시 나 대신 없애 줄 수 있어?
 R-1: 내가 무기를 안 가져와서...
 R-1: 헤헤...
 R-1: X키를 누르면 기절시킬 수 있어
 
+-> slime_kill
+
+=== slime_kill ===
+R-1: 고마워!! 
+R-1: 다음에는 꼭 무기 챙겨올게.
+R-1: 불빛이 보일때까지 가보자
 -> final_battle
 
 === final_battle ===
