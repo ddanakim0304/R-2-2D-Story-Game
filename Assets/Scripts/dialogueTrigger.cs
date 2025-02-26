@@ -18,7 +18,7 @@ public class DialogueTrigger : MonoBehaviour
     public GameObject dialogueTriggerTarget;
     
     // Typing effect variables
-    public float typingSpeed = 0.08f; // Time between characters (lower = faster)
+    private float typingSpeed = 0.12f; // Time between characters (lower = faster)
     private bool isTyping = false;
     private string fullText = "";
     private Coroutine typingCoroutine;
@@ -161,15 +161,21 @@ public class DialogueTrigger : MonoBehaviour
         isTyping = true;
         textComponent.text = "";
         
-        foreach (char c in text)
+        for (int i = 0; i < text.Length; i++)
         {
+            char c = text[i];
             textComponent.text += c;
-            yield return new WaitForSeconds(typingSpeed);
+            
+            // Skip waiting for spaces
+            if (c != ' ')
+            {
+                yield return new WaitForSeconds(typingSpeed);
+            }
         }
         
         isTyping = false;
     }
-    
+        
     // Complete the current typing animation
     private void CompleteTyping()
     {
