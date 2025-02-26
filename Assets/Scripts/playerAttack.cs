@@ -7,6 +7,9 @@ public class PlayerAttack : MonoBehaviour
     [SerializeField] private Transform attackPointUp;
     [SerializeField] private Transform attackPointDown;
     
+    public float attackCooldown = 0.1f; // Cooldown time in seconds
+    private float lastAttackTime = -1f; // Initialize to -1 to allow immediate first attack
+    
     private PlayerController playerController;
 
     void Start()
@@ -16,9 +19,10 @@ public class PlayerAttack : MonoBehaviour
 
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.X)) // Attack when X is pressed
+        if (Input.GetKeyDown(KeyCode.X) && Time.time >= lastAttackTime + attackCooldown) // Check cooldown
         {
             Attack();
+            lastAttackTime = Time.time; // Update the last attack time
         }
     }
 

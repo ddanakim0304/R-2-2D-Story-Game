@@ -1,34 +1,44 @@
 using UnityEngine;
 using Ink.Runtime;
 using TMPro;
+using Cinemachine; // Add this for Cinemachine functionality
 
 public class DialogueTrigger : MonoBehaviour
 {
     public TextAsset inkJSON;
-    // public GameObject dialogueUI_NPC;  // Comment out UI panels
-    // public GameObject dialogueUI_Player;
     public TextMeshProUGUI dialogueText_NPC;
     public TextMeshProUGUI dialogueText_Player;
     public PlayerController player;
+    public string storySection = "";
+    
+    // Add these new references
+    public CinemachineVirtualCamera cinemachineCamera; // The virtual camera to control
+    public Transform npcTransform; // The NPC transform to focus on
+    private Transform playerTransform; // Store player transform to restore later
 
     private Story story;
     private bool isDialogueActive = false;
     private bool isR1Turn = true;
+    private string currentKnot = "";
+    
+    // Choice handling variables
+    private int currentChoiceIndex = 0;
+    private bool isShowingChoices = false;
 
     void Start()
     {
         story = new Story(inkJSON.text);
-        // Hide text instead of UI panels
+        // Hide text initially
         dialogueText_NPC.text = "";
         dialogueText_Player.text = "";
-    }
-
-    void OnTriggerEnter2D(Collider2D other)
-    {
-        if (other.CompareTag("Player"))
-        {
-            StartDialogue();
-        }
+        
+        // If NPC transform isn't set, use this object
+        if (npcTransform == null)
+            npcTransform = transform;
+            
+        // Store player transform reference (assuming player reference exists)
+        if (player != null)
+            playerTransform = player.transform;
     }
 
     void StartDialogue()
@@ -37,22 +47,74 @@ public class DialogueTrigger : MonoBehaviour
 
         isDialogueActive = true;
         player.DisableControl();
+        
+        // Make camera follow the NPC with smooth transition
+        if (cinemachineCamera != null && npcTransform != null)
+        {
+            // Set higher damping values before changing the follow target
+            CinemachineFramingTransposer framingTransposer = cinemachineCamera.GetCinemachineComponent<CinemachineFramingTransposer>();
+            if (framingTransposer != null)
+            {
+                // Higher values = slower transitions (more damping)
+                framingTransposer.m_XDamping = 2.5f;
+                framingTransposer.m_YDamping = 2.5f;
+                framingTransposer.m_ZDamping = 2.5f;
+            }
+            
+            // Now set the follow target
+            cinemachineCamera.Follow = npcTransform;
+        }
+        
+        // Choose the starting point if specified
+        if (!string.IsNullOrEmpty(storySection))
+        {
+            story.ChoosePathString(storySection);
+            currentKnot = storySection;
+        }
+        
         ContinueDialogue();
     }
-
+    void OnTriggerEnter2D(Collider2D other)
+    {
+        if (other.CompareTag("Player"))
+        {
+            StartDialogue();
+        }
+    }
     public void ContinueDialogue()
     {
+        // If showing choices, don't continue
+        if (isShowingChoices)
+            return;
+            
         if (story.canContinue)
         {
             string line = story.Continue();
             DisplayLine(line);
+            
+            // Check if we've moved to a different knot
+            string path = story.state.currentPathString;
+            if (!string.IsNullOrEmpty(currentKnot) && !string.IsNullOrEmpty(path) && 
+                !path.StartsWith(currentKnot) && !path.Equals(currentKnot)) 
+            {
+                // We've moved beyond our section, so end dialogue
+                EndDialogue();
+                return;
+            }
+            
+            // Check for choices after continuing
+            if (story.currentChoices.Count > 0)
+            {
+                isShowingChoices = true;
+                currentChoiceIndex = 0;
+                DisplayCurrentChoice();
+            }
         }
         else
         {
             EndDialogue();
         }
     }
-
     private void DisplayLine(string line)
     {
         if (line.StartsWith("R-1:"))
@@ -61,12 +123,42 @@ public class DialogueTrigger : MonoBehaviour
             dialogueText_Player.text = "";  // Clear other text
             isR1Turn = false;
         }
-        else if (line.StartsWith("R-2:"))
+        else
         {
-            dialogueText_Player.text = line.Substring(5);
+            dialogueText_Player.text = line.Substring(0);
             dialogueText_NPC.text = "";  // Clear other text
             isR1Turn = true;
         }
+    }
+    
+    private void DisplayCurrentChoice()
+    {
+        if (story.currentChoices.Count == 0)
+            return;
+            
+        Choice choice = story.currentChoices[currentChoiceIndex];
+        
+        // Display the choice with arrow indicators
+        string choiceText = $"<- {choice.text} ->";
+        
+        // Show choice in the player's text area
+        dialogueText_Player.text = choiceText;
+        dialogueText_NPC.text = "";
+    }
+    
+    private void MakeChoice()
+    {
+        if (!isShowingChoices || story.currentChoices.Count == 0)
+            return;
+            
+        // Select the current choice
+        story.ChooseChoiceIndex(currentChoiceIndex);
+        
+        // Reset choice state
+        isShowingChoices = false;
+        
+        // Continue to the next dialogue line
+        ContinueDialogue();
     }
 
     void EndDialogue()
@@ -74,14 +166,52 @@ public class DialogueTrigger : MonoBehaviour
         dialogueText_NPC.text = "";
         dialogueText_Player.text = "";
         isDialogueActive = false;
+        
+        // Return camera to follow the player
+        if (cinemachineCamera != null && playerTransform != null)
+        {
+            cinemachineCamera.Follow = playerTransform;
+        }
+        
         player.EnableControl();
         Destroy(gameObject);
     }
 
     void Update()
     {
-        if (isDialogueActive && Input.GetKeyDown(KeyCode.Space))
+        if (!isDialogueActive)
+            return;
+            
+        // Handle choices with arrow keys
+        if (isShowingChoices)
         {
+            if (Input.GetKeyDown(KeyCode.LeftArrow))
+            {
+                // Move to previous choice (wrap around)
+                currentChoiceIndex--;
+                if (currentChoiceIndex < 0)
+                    currentChoiceIndex = story.currentChoices.Count - 1;
+                    
+                DisplayCurrentChoice();
+            }
+            else if (Input.GetKeyDown(KeyCode.RightArrow))
+            {
+                // Move to next choice (wrap around)
+                currentChoiceIndex++;
+                if (currentChoiceIndex >= story.currentChoices.Count)
+                    currentChoiceIndex = 0;
+                    
+                DisplayCurrentChoice();
+            }
+            else if (Input.GetKeyDown(KeyCode.Space))
+            {
+                // Make the selected choice
+                MakeChoice();
+            }
+        }
+        else if (Input.GetKeyDown(KeyCode.Space))
+        {
+            // Continue dialogue
             ContinueDialogue();
         }
     }

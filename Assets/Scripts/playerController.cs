@@ -12,8 +12,7 @@ public class PlayerController : MonoBehaviour
 
     public float knockbackForce = 5f; 
     private bool isKnockback = false;
-    
-    public float flashDuration = 0.1f;
+
 
     private Rigidbody2D rb;
     private SpriteRenderer spriteRenderer;
