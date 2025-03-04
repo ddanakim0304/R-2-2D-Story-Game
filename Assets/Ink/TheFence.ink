@@ -1,64 +1,67 @@
--> start
-
 === start ===
-R-1: ㅈ......
-R-1: ...정신...
-R-1: 정신차려...!
-R-1: R-2, 여기서 잠들면 안돼!
-R-1: ...
+R-1: W......
+R-1: ...Wake up...
+R-1: R-2, you can't fall asleep here!
+R-1: Come on, get up... Please?
+
 -> tutorial_start
 
 === tutorial_start ===
-R-1: 잠깐 졸았다고 없어져서 깜짝 놀랐잖아.
-R-1: 역시 내가 억지로 데리고 오지 말았어야 했는데.
-R-1: 미안해, 얼른 해가 지기 전에 돌아가자.
-R-1: 더 늦으면 어른들이 걱정하실거야.
+R-1: There you are! 
+R-1: I’ve been looking all over for you.
+R-1: Sorry for dragging you into this...
+R-1: We should head back before the sun sets.
+R-1: If we stay out much longer, our parents will start to worry.
 R-1: ...
 R-1: .....
-R-1: 그...
-R-1: 어떻게 돌아가는지 알지?
+R-1: Uh...
+R-1: You... do know the way back, right?
+R-1: ...
+R-1: Hmm...
+R-1: Well, let's just keep moving for now. 
+R-1: We'll figure it out.
 
-+ 응
-    R-1: 다행이다..! 
-    R-1: 그럼 앞장서줘, 나는 뒤에서 따라갈게.
-    -> slime_kill
-+ 아니
-    R-1: 큰일이네...
-    R-1: 일단 쭉 가볼까?
-    -> slime_kill
+-> slime_encounter
 
 === slime_encounter ===
-R-1: 앗
-R-1: 귀여운 몬스터인데...
-R-1: 혹시 나 대신 없애 줄 수 있어?
-R-1: 내가 무기를 안 가져와서...
-R-1: 헤헤...
-R-1: X키를 누르면 기절시킬 수 있어
+R-1: Ah!
+R-1: That’s a slime.
+R-1: We could fight it, but...
+R-1: It’s kinda cute. 
+R-1: Maybe we should just leave it alone?
+R-1: I mean... 
+R-1: it’s not hurting anyone.
 
--> slime_kill
+-> village
 
-=== slime_kill ===
-R-1: 고마워!! 
-R-1: 다음에는 꼭 무기 챙겨올게.
-R-1: 불빛이 보일때까지 가보자
--> final_battle
+=== village ===
+R-1: Look! I can see the village lights!
+R-1: See? I knew I could count on you!
+R-1: If I was alone, I probably would’ve gotten lost... or worse.
+R-1: Thanks for sticking with me.
 
-=== final_battle ===
-R-1: 저기 봐! 마을 불빛이 보인다.
-R-1: 역시 R-2가 최고라니까!
-R-1: 나 혼자였으면 길 잃고 잡아먹혔을 거야.
-R-1: 음....
-R-1: ...
-R-1: .....
-R-1: 이 시간이면 안 마주칠 줄 알았는데...
-R-1: 어쩔 수 없지 뭐.
-R-1: 금방 쓰러뜨리고 가자.
+-> monster_encounter
 
--> death
+=== monster_encounter ===
+R-1: R-2?
+R-1: What’s wrong?
+R-1: You’re acting kinda weird...
 
-=== death ===
-R-1: 슬슬 지친 것 같은데?
-R-1: 몇 번만 더 공격하면 될 것 같....
-R-1: [사망]
+-> monster_pass
+
+=== monster_pass ===
+R-1: !!!!!
+R-1: Oh my...
+R-1: I thought we wouldn’t run into anything at this hour...
+R-1: We don’t have much of a choice, do we?
+R-1: Let’s try not to disturb it.
+R-1: Can you go first?
+R-1: Be careful, and don’t make a sound...
+-> npc_death
+
+=== npc_death ===
+R-1: Phew...!
+R-1: That was close... 
+R-1: Alright, I’ll go ahead.
 
 -> END

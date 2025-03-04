@@ -18,21 +18,22 @@ public class DialogueTrigger : MonoBehaviour
     public GameObject dialogueTriggerTarget;
     
     // Typing effect variables
-    private float typingSpeed = 0.12f; // Time between characters (lower = faster)
+    private float typingSpeed = 0.05f; // Time between characters (lower = faster)
     private bool isTyping = false;
     private string fullText = "";
     private Coroutine typingCoroutine;
 
     private Story story;
     private bool isDialogueActive = false;
-    private bool isR1Turn = true;
+    private bool isPlayerTurn = true;
     private string currentKnot = "";
     
     // Choice handling variables
     private int currentChoiceIndex = 0;
     private bool isShowingChoices = false;
+    private bool isTypingComplete = false;
 
-    void Start()
+    protected virtual void Start()
     {
         story = new Story(inkJSON.text);
         // Hide text initially
@@ -48,7 +49,7 @@ public class DialogueTrigger : MonoBehaviour
             playerTransform = player.transform;
     }
 
-    void StartDialogue()
+    protected virtual void StartDialogue()
     {
         if (isDialogueActive) return;
 
@@ -81,7 +82,7 @@ public class DialogueTrigger : MonoBehaviour
         
         ContinueDialogue();
     }
-    void OnTriggerEnter2D(Collider2D other)
+    protected virtual void OnTriggerEnter2D(Collider2D other)
     {
         // Check if we have a target set and the collider matches that target
         if (dialogueTriggerTarget != null && other.gameObject == dialogueTriggerTarget)
@@ -94,16 +95,19 @@ public class DialogueTrigger : MonoBehaviour
             StartDialogue();
         }
     }
-    public void ContinueDialogue()
+    protected virtual void ContinueDialogue()
     {
-        // If showing choices, don't continue
-        if (isShowingChoices)
+        // If showing choices or still typing, don't continue
+        if (isShowingChoices || (isTyping && !isTypingComplete))
             return;
-            
+                
         if (story.canContinue)
         {
             string line = story.Continue();
             DisplayLine(line);
+            
+            // Reset typing complete flag for new text
+            isTypingComplete = false;
             
             // Check if we've moved to a different knot
             string path = story.state.currentPathString;
@@ -134,31 +138,33 @@ public class DialogueTrigger : MonoBehaviour
         if (line.StartsWith("R-1:"))
         {
             fullText = line.Substring(5);
-            dialogueText_Player.text = ""; // Clear other text
-            isR1Turn = false;
-            
-            // Start typing effect for NPC text
+            dialogueText_Player.text = ""; // Clear previous player text
+
+            isPlayerTurn = false;
+
             if (typingCoroutine != null)
                 StopCoroutine(typingCoroutine);
             typingCoroutine = StartCoroutine(TypeText(fullText, dialogueText_NPC));
         }
         else
         {
-            fullText = line.Substring(0);
-            dialogueText_NPC.text = ""; // Clear other text
-            isR1Turn = true;
-            
-            // Start typing effect for Player text
+            fullText = line.Substring(5);
+            dialogueText_NPC.text = ""; // Clear previous NPC text
+
+            isPlayerTurn = true;
+
             if (typingCoroutine != null)
                 StopCoroutine(typingCoroutine);
             typingCoroutine = StartCoroutine(TypeText(fullText, dialogueText_Player));
         }
     }
+
     
     // Coroutine for typewriter effect
     private IEnumerator TypeText(string text, TextMeshProUGUI textComponent)
     {
         isTyping = true;
+        isTypingComplete = false;
         textComponent.text = "";
         
         for (int i = 0; i < text.Length; i++)
@@ -174,6 +180,7 @@ public class DialogueTrigger : MonoBehaviour
         }
         
         isTyping = false;
+        isTypingComplete = true;
     }
         
     // Complete the current typing animation
@@ -185,8 +192,9 @@ public class DialogueTrigger : MonoBehaviour
                 StopCoroutine(typingCoroutine);
                 
             isTyping = false;
+            isTypingComplete = true;
             
-            if (isR1Turn)
+            if (isPlayerTurn)
                 dialogueText_Player.text = fullText;
             else
                 dialogueText_NPC.text = fullText;
@@ -223,7 +231,7 @@ public class DialogueTrigger : MonoBehaviour
         ContinueDialogue();
     }
 
-    void EndDialogue()
+    protected virtual void EndDialogue()
     {
         dialogueText_NPC.text = "";
         dialogueText_Player.text = "";
@@ -249,28 +257,20 @@ public class DialogueTrigger : MonoBehaviour
         {
             if (Input.GetKeyDown(KeyCode.LeftArrow))
             {
-                // Move to previous choice (wrap around)
-                currentChoiceIndex--;
-                if (currentChoiceIndex < 0)
-                    currentChoiceIndex = story.currentChoices.Count - 1;
-                    
+                currentChoiceIndex = (currentChoiceIndex - 1 + story.currentChoices.Count) % story.currentChoices.Count;
                 DisplayCurrentChoice();
             }
             else if (Input.GetKeyDown(KeyCode.RightArrow))
             {
-                // Move to next choice (wrap around)
-                currentChoiceIndex++;
-                if (currentChoiceIndex >= story.currentChoices.Count)
-                    currentChoiceIndex = 0;
-                    
+                currentChoiceIndex = (currentChoiceIndex + 1) % story.currentChoices.Count;
                 DisplayCurrentChoice();
             }
-            else if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.KeypadEnter))
+            else if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return))
             {
-                // Make the selected choice
                 MakeChoice();
             }
         }
+
         else if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.KeypadEnter))
         {
             // If currently typing, show full text immediately
