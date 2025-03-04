@@ -106,6 +106,8 @@ public class battleSceneManager : DialogueTrigger
                 yield return null;
             }
 
+            yield return new WaitForSeconds(0.5f);
+
             // 4. SHAKE CAMERA
             yield return StartCoroutine(ShakeCamera());
 
@@ -132,7 +134,7 @@ public class battleSceneManager : DialogueTrigger
             
             float elapsedTime = 0f;
             
-            // Continue until we reach the transition duration
+            // 1. ZOOM OUT to initialZoomedOutDistance
             while (elapsedTime < transitionDuration)
             {
                 elapsedTime += Time.deltaTime;
@@ -140,20 +142,13 @@ public class battleSceneManager : DialogueTrigger
                 // Calculate lerp factor (0 to 1)
                 float t = elapsedTime / transitionDuration;
                 
-                // Return to original values instead of target values
-                framingTransposer.m_CameraDistance = Mathf.Lerp(startCameraDistance, originalCameraDistance, t);
-                framingTransposer.m_TrackedObjectOffset = Vector3.Lerp(startTrackedOffset, originalTrackedOffset, t);
+                // Lerp to initialZoomedOutDistance
+                framingTransposer.m_CameraDistance = Mathf.Lerp(startCameraDistance, initialZoomedOutDistance, t);
+                framingTransposer.m_TrackedObjectOffset = Vector3.Lerp(startTrackedOffset, targetTrackedOffset, t);
                 
                 yield return null;
             }
-            
-            // Ensure we set the exact original values
-            framingTransposer.m_CameraDistance = originalCameraDistance;
-            framingTransposer.m_TrackedObjectOffset = originalTrackedOffset;
-            
-            // Re-enable player movement after camera transition is complete
-            if (playerController != null)
-                playerController.EnableControl();
+
         }
     }
 
@@ -161,7 +156,7 @@ public class battleSceneManager : DialogueTrigger
     {
         Vector3 originalTrackedOffsetCopy = framingTransposer.m_TrackedObjectOffset;
         float elapsedTime = 0f;
-        float shakeSpeed = 2.0f;
+        float shakeSpeed = 1.5f;
     
         while (elapsedTime < shakeDuration)
         {
