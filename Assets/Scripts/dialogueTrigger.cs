@@ -13,7 +13,7 @@ public class DialogueTrigger : MonoBehaviour
     public string storySection = "";
     public CinemachineVirtualCamera cinemachineCamera;
     public Transform npcTransform;
-    private Transform playerTransform;
+    public Transform playerTransform;
 
     public GameObject dialogueTriggerTarget;
     
@@ -23,15 +23,21 @@ public class DialogueTrigger : MonoBehaviour
     private string fullText = "";
     private Coroutine typingCoroutine;
 
-    private Story story;
-    private bool isDialogueActive = false;
+    public Story story;
+    public bool isDialogueActive = false;
     private bool isPlayerTurn = true;
-    private string currentKnot = "";
+    public string currentKnot = "";
     
     // Choice handling variables
     private int currentChoiceIndex = 0;
     private bool isShowingChoices = false;
     private bool isTypingComplete = false;
+
+    // Debug option
+    [Header("Debug Options")]
+    public bool enableDebugSkip = true;
+    public KeyCode skipDialogueKey = KeyCode.Backspace;
+    
 
     protected virtual void Start()
     {
@@ -52,25 +58,14 @@ public class DialogueTrigger : MonoBehaviour
     protected virtual void StartDialogue()
     {
         if (isDialogueActive) return;
-
+    
         isDialogueActive = true;
         player.DisableControl();
         
-        // Make camera follow the NPC with smooth transition
+        // Start camera transition with lerp
         if (cinemachineCamera != null && npcTransform != null)
         {
-            // Set higher damping values before changing the follow target
-            CinemachineFramingTransposer framingTransposer = cinemachineCamera.GetCinemachineComponent<CinemachineFramingTransposer>();
-            if (framingTransposer != null)
-            {
-                // Higher values = slower transitions (more damping)
-                framingTransposer.m_XDamping = 2.5f;
-                framingTransposer.m_YDamping = 2.5f;
-                framingTransposer.m_ZDamping = 2.5f;
-            }
-            
-            // Now set the follow target
-            cinemachineCamera.Follow = npcTransform;
+            StartCoroutine(SmoothCameraTransition(playerTransform, npcTransform, 5.0f)); // 2.0f is duration in seconds
         }
         
         // Choose the starting point if specified
@@ -81,6 +76,32 @@ public class DialogueTrigger : MonoBehaviour
         }
         
         ContinueDialogue();
+    }
+    
+    // Add this new coroutine
+    private IEnumerator SmoothCameraTransition(Transform fromTarget, Transform toTarget, float duration)
+    {
+        // Store original camera settings
+        CinemachineFramingTransposer framingTransposer = cinemachineCamera.GetCinemachineComponent<CinemachineFramingTransposer>();
+        float originalXDamping = framingTransposer.m_XDamping;
+        float originalYDamping = framingTransposer.m_YDamping;
+        float originalZDamping = framingTransposer.m_ZDamping;
+        
+        // Set higher damping for very smooth movement
+        framingTransposer.m_XDamping = 5.0f;
+        framingTransposer.m_YDamping = 5.0f;
+        framingTransposer.m_ZDamping = 5.0f;
+        
+        // Set the target
+        cinemachineCamera.Follow = toTarget;
+        
+        // Wait for the transition to complete
+        yield return new WaitForSeconds(duration);
+        
+        // Optionally restore original damping values after transition
+        framingTransposer.m_XDamping = originalXDamping;
+        framingTransposer.m_YDamping = originalYDamping;
+        framingTransposer.m_ZDamping = originalZDamping;
     }
     protected virtual void OnTriggerEnter2D(Collider2D other)
     {
@@ -252,6 +273,13 @@ public class DialogueTrigger : MonoBehaviour
         if (!isDialogueActive)
             return;
             
+        // Debug skip dialogue functionality
+        if (enableDebugSkip && Input.GetKeyDown(skipDialogueKey))
+        {
+            EndDialogue();
+            return;
+        }
+
         // Handle choices with arrow keys
         if (isShowingChoices)
         {

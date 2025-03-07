@@ -47,7 +47,7 @@ public class battleSceneManager : DialogueTrigger
     }
 
     // Override the OnTriggerEnter2D method
-    new void OnTriggerEnter2D(Collider2D other)
+   protected override void OnTriggerEnter2D(Collider2D other)
     {
         if (hasTriggeredSequence)
             return;
@@ -116,42 +116,50 @@ public class battleSceneManager : DialogueTrigger
         }
     }
     
-    protected override void EndDialogue()
+        protected override void EndDialogue()
     {
-        // Call the base class EndDialogue method
-        base.EndDialogue();
-        
-        // 5. ZOOM OUT after dialogue
-        StartCoroutine(AdjustCameraAfterDialogue());
-    }
-
-    private IEnumerator AdjustCameraAfterDialogue()
-    {
-        if (cinemachineCamera != null && framingTransposer != null)
+        if (npcTransform != null)
         {
-            float startCameraDistance = framingTransposer.m_CameraDistance;
-            Vector3 startTrackedOffset = framingTransposer.m_TrackedObjectOffset;
-            
-            float elapsedTime = 0f;
-            
-            // 1. ZOOM OUT to initialZoomedOutDistance
-            while (elapsedTime < transitionDuration)
+            // Disable the npcMovement component
+            npcMovement npcMover = npcTransform.GetComponent<npcMovement>();
+            if (npcMover != null)
             {
-                elapsedTime += Time.deltaTime;
-                
-                // Calculate lerp factor (0 to 1)
-                float t = elapsedTime / transitionDuration;
-                
-                // Lerp to initialZoomedOutDistance
-                framingTransposer.m_CameraDistance = Mathf.Lerp(startCameraDistance, initialZoomedOutDistance, t);
-                framingTransposer.m_TrackedObjectOffset = Vector3.Lerp(startTrackedOffset, targetTrackedOffset, t);
-                
-                yield return null;
+                npcMover.enabled = false;
             }
-
         }
+        
+        // Start the final zoom out effect BEFORE destroying the gameObject
+        StartCoroutine(FinalZoomOut());
     }
-
+private IEnumerator FinalZoomOut()
+{
+    if (cinemachineCamera != null && framingTransposer != null)
+    {
+        float startCameraDistance = framingTransposer.m_CameraDistance;
+        Vector3 startTrackedOffset = framingTransposer.m_TrackedObjectOffset;
+        
+        // ZOOM OUT
+        float elapsedTime = 0f;
+        while (elapsedTime < transitionDuration)
+        {
+            elapsedTime += Time.deltaTime;
+            float t = elapsedTime / transitionDuration;
+            
+            // Lerp from current distance to initialZoomedOutDistance
+            framingTransposer.m_CameraDistance = Mathf.Lerp(startCameraDistance, initialZoomedOutDistance, t);
+            framingTransposer.m_TrackedObjectOffset = Vector3.Lerp(startTrackedOffset, targetTrackedOffset, t);
+            
+            yield return null;
+        }
+        
+        // Re-enable player control after zoom out is complete
+        if (playerController != null)
+            playerController.EnableControl();
+            
+        // Now that the zoom is complete, call the base EndDialogue to clean up
+        base.EndDialogue();
+    }
+}
     private IEnumerator ShakeCamera()
     {
         Vector3 originalTrackedOffsetCopy = framingTransposer.m_TrackedObjectOffset;
