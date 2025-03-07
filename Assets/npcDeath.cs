@@ -11,6 +11,10 @@ public class npcDeath : DialogueTrigger
     [Header("Camera Settings")]
     public float zoomInDistance = 10f;
     public float cameraTransitionTime = 2.5f;
+    public float NPCcameraTransitionTime = 0.2f;
+    
+    [Header("Monster Settings")]
+    public GameObject monster;
     
     private Rigidbody2D npcRb;
     private bool isFacingRight = true;
@@ -64,40 +68,38 @@ public class npcDeath : DialogueTrigger
         
         if (framingTransposer != null)
         {
-            originalOrthoSize = cinemachineCamera.m_Lens.OrthographicSize;
+            // Store original values
+            float originalCameraDistance = framingTransposer.m_CameraDistance;
             originalTrackedOffset = framingTransposer.m_TrackedObjectOffset;
+
             
-            // Set higher damping for smooth transition
-            float originalXDamping = framingTransposer.m_XDamping;
-            float originalYDamping = framingTransposer.m_YDamping;
-            float originalZDamping = framingTransposer.m_ZDamping;
-            
-            framingTransposer.m_XDamping = 5.0f;
-            framingTransposer.m_YDamping = 5.0f;
-            framingTransposer.m_ZDamping = 5.0f;
+            // Add a 2-second delay before changing the camera target
+            yield return new WaitForSeconds(2f);
             
             // Change camera to follow NPC
             cinemachineCamera.Follow = npcTransform;
-            framingTransposer.m_TrackedObjectOffset = Vector3.zero;
             
             // Zoom in gradually
-            float startTime = Time.time;
-            float initialOrthoSize = cinemachineCamera.m_Lens.OrthographicSize;
+            float elapsedTime = 0f;
+            float initialCameraDistance = framingTransposer.m_CameraDistance;
+            Vector3 initialTrackedOffset = framingTransposer.m_TrackedObjectOffset;
             
-            while (Time.time < startTime + cameraTransitionTime)
+            while (elapsedTime < NPCcameraTransitionTime)
             {
-                float t = (Time.time - startTime) / cameraTransitionTime;
-                cinemachineCamera.m_Lens.OrthographicSize = Mathf.Lerp(initialOrthoSize, zoomInDistance, t);
+                elapsedTime += Time.deltaTime;
+                float t = elapsedTime / NPCcameraTransitionTime;
+                
+                // Interpolate both the camera distance and tracked offset
+                framingTransposer.m_CameraDistance = Mathf.Lerp(initialCameraDistance, zoomInDistance, t);
+                framingTransposer.m_TrackedObjectOffset = Vector3.Lerp(initialTrackedOffset, Vector3.zero, t);
+                
                 yield return null;
             }
             
             // Ensure we reach the exact target values
-            cinemachineCamera.m_Lens.OrthographicSize = zoomInDistance;
+            framingTransposer.m_CameraDistance = zoomInDistance;
+            framingTransposer.m_TrackedObjectOffset = Vector3.zero;
             
-            // Restore original damping values
-            framingTransposer.m_XDamping = originalXDamping;
-            framingTransposer.m_YDamping = originalYDamping; 
-            framingTransposer.m_ZDamping = originalZDamping;
         }
         else
         {
@@ -111,58 +113,8 @@ public class npcDeath : DialogueTrigger
         dialogueText_Player.text = "";
         isDialogueActive = false;
         
-        // Reset camera to player
-        StartCoroutine(ResetCamera());
-        
         // Start walking behavior
         StartCoroutine(WalkToTarget());
-    }
-    
-    private IEnumerator ResetCamera()
-    {
-        yield return new WaitForSeconds(1f); // Small delay before switching back
-        
-        if (cinemachineCamera != null)
-        {
-            CinemachineFramingTransposer framingTransposer = cinemachineCamera.GetCinemachineComponent<CinemachineFramingTransposer>();
-            
-            if (framingTransposer != null)
-            {
-                // Set higher damping for smooth transition back
-                float originalXDamping = framingTransposer.m_XDamping;
-                float originalYDamping = framingTransposer.m_YDamping;
-                float originalZDamping = framingTransposer.m_ZDamping;
-                
-                framingTransposer.m_XDamping = 5.0f;
-                framingTransposer.m_YDamping = 5.0f;
-                framingTransposer.m_ZDamping = 5.0f;
-                
-                // Reset follow target
-                cinemachineCamera.Follow = originalFollowTarget;
-                
-                // Zoom out gradually
-                float startTime = Time.time;
-                float initialOrthoSize = cinemachineCamera.m_Lens.OrthographicSize;
-                Vector3 initialOffset = framingTransposer.m_TrackedObjectOffset;
-                
-                while (Time.time < startTime + cameraTransitionTime)
-                {
-                    float t = (Time.time - startTime) / cameraTransitionTime;
-                    cinemachineCamera.m_Lens.OrthographicSize = Mathf.Lerp(initialOrthoSize, originalOrthoSize, t);
-                    framingTransposer.m_TrackedObjectOffset = Vector3.Lerp(initialOffset, originalTrackedOffset, t);
-                    yield return null;
-                }
-                
-                // Ensure we reach the exact target values
-                cinemachineCamera.m_Lens.OrthographicSize = originalOrthoSize;
-                framingTransposer.m_TrackedObjectOffset = originalTrackedOffset;
-                
-                // Restore original damping values
-                framingTransposer.m_XDamping = originalXDamping;
-                framingTransposer.m_YDamping = originalYDamping;
-                framingTransposer.m_ZDamping = originalZDamping;
-            }
-        }
     }
     private IEnumerator WalkToTarget()
     {
@@ -188,15 +140,29 @@ public class npcDeath : DialogueTrigger
         }
         
         npcRb.velocity = Vector2.zero;
-
-        if (player != null)
+        
+        // Handle monster death animation
+        if (monster != null)
         {
-            player.EnableControl();
+            // Remove all children of the monster
+            foreach (Transform child in monster.transform)
+            {
+                Destroy(child.gameObject);
+            }
+            
+            // Get the Animator component and trigger the death animation
+            Animator monsterAnimator = monster.GetComponent<Animator>();
+            if (monsterAnimator != null)
+            {
+                monsterAnimator.SetTrigger("death");
+                
+                // Optional: wait for animation to complete (adjust time as needed)
+                yield return new WaitForSeconds(1.5f);
+            }
         }
         
         Destroy(gameObject);
     }
-    
     private void Turn()
     {
         isFacingRight = !isFacingRight;
