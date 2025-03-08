@@ -7,7 +7,7 @@ R-1: Come on, get up... Please?
 -> tutorial_start
 
 === tutorial_start ===
-R-1: There you are! 
+R-1: There you are! (press SPACE)
 R-1: I’ve been looking all over for you.
 R-1: Sorry for dragging you into this...
 R-1: We should head back before the sun sets.
